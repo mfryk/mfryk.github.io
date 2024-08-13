@@ -1,0 +1,38 @@
+
+-- SQL Summary for Financial Market Analysis
+
+-- 1. Data Cleaning and Preparation
+-- Handling missing values and normalizing data formats
+UPDATE stock_prices
+SET price = COALESCE(price, 0)
+WHERE price IS NULL;
+
+-- 2. Calculating Daily Returns
+-- Using window functions to calculate daily returns for the S&P 500
+WITH daily_returns AS (
+    SELECT
+        date,
+        price,
+        LAG(price, 1) OVER (ORDER BY date) AS prev_price,
+        (price - LAG(price, 1) OVER (ORDER BY date)) / LAG(price, 1) OVER (ORDER BY date) * 100 AS return_percentage
+    FROM stock_prices
+)
+SELECT * FROM daily_returns;
+
+-- 3. Merging Stock Prices with Interest Rate Data
+-- Joining stock prices with Federal Reserve interest rate data
+SELECT
+    sp.date,
+    sp.price,
+    ir.interest_rate,
+    dr.return_percentage
+FROM stock_prices sp
+LEFT JOIN interest_rates ir ON sp.date = ir.date
+LEFT JOIN daily_returns dr ON sp.date = dr.date;
+
+-- 4. Correlation Analysis
+-- Calculating the correlation between interest rates and stock market returns
+SELECT
+    CORR(ir.interest_rate, dr.return_percentage) AS correlation_coefficient
+FROM interest_rates ir
+JOIN daily_returns dr ON ir.date = dr.date;
